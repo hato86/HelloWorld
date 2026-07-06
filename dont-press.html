@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>押したら負け</title>
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #14141c;
+      color: #eee;
+      font-family: sans-serif;
+      user-select: none;
+    }
+    #hud {
+      position: fixed;
+      top: 14px;
+      left: 0;
+      width: 100%;
+      text-align: center;
+      pointer-events: none;
+    }
+    #timer { font-size: 34px; font-weight: bold; }
+    #highscore { font-size: 13px; color: #9aa; }
+    #message {
+      position: fixed;
+      top: 110px;
+      left: 0;
+      width: 100%;
+      text-align: center;
+      font-size: 18px;
+      color: #ffcf6e;
+      min-height: 26px;
+      pointer-events: none;
+    }
+    #realButton {
+      position: absolute;
+      padding: 22px 44px;
+      font-size: 22px;
+      font-weight: bold;
+      color: #fff;
+      background: #c0392b;
+      border: 4px solid #922;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    #realButton.tempting {
+      background: #2ecc71;
+      border-color: #1a8a4a;
+      animation: pulse 0.6s infinite alternate;
+    }
+    @keyframes pulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.12); }
+    }
+    .fake-button {
+      position: absolute;
+      padding: 10px 18px;
+      font-size: 14px;
+      background: #3498db;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .fake-dialog {
+      position: absolute;
+      width: 300px;
+      background: #f2f2f2;
+      color: #222;
+      border-radius: 8px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+      padding: 16px;
+      font-size: 14px;
+      z-index: 5;
+    }
+    .fake-dialog .dialog-ok {
+      display: block;
+      margin: 14px auto 0;
+      padding: 8px 30px;
+      background: #3478f6;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    #blackout {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s;
+      z-index: 8;
+    }
+    #overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 10, 16, 0.92);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      z-index: 10;
+      text-align: center;
+    }
+    #overlay h1 { margin: 0; }
+    #overlay button {
+      padding: 14px 36px;
+      font-size: 18px;
+      border: none;
+      border-radius: 10px;
+      background: #3478f6;
+      color: #fff;
+      cursor: pointer;
+    }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div id="hud">
+    <div id="timer">0.0秒</div>
+    <div id="highscore"></div>
+  </div>
+  <div id="message"></div>
+
+  <button id="realButton">押すな</button>
+  <div id="blackout"></div>
+
+  <div id="overlay">
+    <h1>押したら負け</h1>
+    <p>ルールはひとつ。赤いボタンを<strong>絶対に押すな。</strong><br>
+    画面はあの手この手で君に押させようとしてくる。</p>
+    <button id="startButton">はじめる</button>
+    <div id="result"></div>
+  </div>
+
+  <a href="index.html" style="position:fixed;bottom:10px;right:12px;color:#667;font-size:12px;z-index:11;">← もどる</a>
+  <script src="dont-press.js"></script>
+</body>
+</html>
