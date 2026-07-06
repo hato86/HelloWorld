@@ -778,6 +778,204 @@ function trickHudRefresh() {
   setTimeout(() => r.remove(), 9000);
 }
 
+// ---- 追加トリック: 絶対に押してしまう系 ----
+
+// 一定時間「画面のどこをクリックしてもアウト」にする共通装置
+let clickTrapCleanup = null;
+function armClickTrap(ms, reason, endMessage) {
+  if (clickTrapCleanup) return false; // 二重発動はしない
+  const handler = () => gameOver(reason);
+  document.addEventListener("click", handler, true);
+  const timeout = setTimeout(() => {
+    disarm();
+    if (running && endMessage) setMessage(endMessage);
+  }, ms);
+  function disarm() {
+    document.removeEventListener("click", handler, true);
+    clearTimeout(timeout);
+    clickTrapCleanup = null;
+  }
+  clickTrapCleanup = disarm;
+  return true;
+}
+
+// ⚡帯電: 3秒間、背景も含めて画面のどこに触れてもアウト(空打ち癖を狩る)
+function trickElectrified() {
+  if (!armClickTrap(3000, "⚡ 帯電中の画面に触れてしまった…!", "放電完了。触らなくて正解。")) {
+    trickTaunt();
+    return;
+  }
+  setMessage("⚡ 高圧電流が流れた!3秒間なにもクリックするな!背景もだ!", 0);
+}
+
+// カーソルが消える+「クリックで復帰」という嘘
+function trickCursorGone() {
+  if (!armClickTrap(4000, "「クリックで復帰」は嘘でした…!", "ほら、カーソルは勝手に戻る。")) {
+    trickTaunt();
+    return;
+  }
+  document.body.classList.add("nocursor");
+  setMessage("カーソルが消えた!画面をクリックすれば復帰できるよ!", 0);
+  setTimeout(() => document.body.classList.remove("nocursor"), 4000);
+}
+
+// 偽「タブが応答していません」バー
+function trickTabHang() {
+  const bar = document.createElement("div");
+  bar.className = "update-bar fake-misc";
+  bar.style.background = "#e8e8e8";
+  bar.innerHTML =
+    "⚠️ このページは応答していません。" +
+    "<button>タブを閉じる</button><button>待機</button>";
+  document.body.appendChild(bar);
+  bar.querySelectorAll("button").forEach((b) =>
+    b.addEventListener("click", () => {
+      gameOver("ページはずっと元気です。「応答なし」は演技…!");
+    })
+  );
+  setTimeout(() => bar.remove(), 7000);
+}
+
+// 偽の友達チャット
+function trickFakeChat() {
+  const chat = document.createElement("div");
+  chat.className = "toast fake-misc";
+  chat.innerHTML =
+    "💬 <strong>友達</strong>: まだやってるの?w 今何秒?<button>返信する</button>";
+  document.body.appendChild(chat);
+  chat.querySelector("button").addEventListener("click", () => {
+    gameOver("友達などいません(このゲームには)。返信ボタンは罠…!");
+  });
+  setTimeout(() => chat.remove(), 7000);
+}
+
+// ギフト券当選詐欺(本物のカウントダウン付き)
+function trickGiftCard() {
+  const d = document.createElement("div");
+  d.className = "fake-dialog fake-misc";
+  d.style.background = "#fff8dc";
+  d.innerHTML =
+    "🎁 <strong>おめでとうございます!</strong><br>" +
+    "ギフト券10,000円分に当選しました。<br>" +
+    '<span class="gift-timer">残り10秒</span>' +
+    '<button class="dialog-ok">受け取る</button>';
+  d.style.left = `${Math.random() * (innerWidth - 340) + 20}px`;
+  d.style.top = `${Math.random() * (innerHeight - 280) + 80}px`;
+  document.body.appendChild(d);
+  let n = 10;
+  const iv = setInterval(() => {
+    n--;
+    const t = d.querySelector(".gift-timer");
+    if (t) t.textContent = `残り${n}秒`;
+    if (n <= 0) clearInterval(iv);
+  }, 1000);
+  d.querySelector(".dialog-ok").addEventListener("click", () => {
+    gameOver("当選詐欺に引っかかった…!焦らせるカウントダウンは詐欺の定番。");
+  });
+  setTimeout(() => { clearInterval(iv); d.remove(); }, 10000);
+}
+
+// システムを名乗る検証命令。「罠ではありません」は罠の定番
+function trickSystemOrder() {
+  const d = document.createElement("div");
+  d.className = "fake-dialog fake-misc";
+  d.innerHTML =
+    "🛡 <strong>【システム】</strong><br>" +
+    "不正クリック検知の検証のため、下の緑のボタンを1回押してください。<br>" +
+    "<em>※これは罠ではありません。</em>" +
+    '<button class="dialog-ok" style="background:#2ecc71">検証ボタン</button>';
+  d.style.left = `${innerWidth / 2 - 160}px`;
+  d.style.top = `${innerHeight / 2 - 200}px`;
+  document.body.appendChild(d);
+  d.querySelector(".dialog-ok").addEventListener("click", () => {
+    gameOver("「罠ではありません」と書いてあるものは、だいたい罠…!");
+  });
+  setTimeout(() => d.remove(), 7000);
+}
+
+// 本物のスタート画面と同じ見た目の偽画面
+function trickFakeStartScreen() {
+  const fake = document.createElement("div");
+  fake.className = "fake-over fake-misc";
+  fake.innerHTML =
+    "<h1>押したら負け</h1>" +
+    "<p>ルールはひとつ。<strong>何も押すな。</strong><br>" +
+    "赤いボタンも、途中で現れる怪しいボタンも、ぜんぶ罠だ。<br>" +
+    "画面はあの手この手で君にクリックさせようとしてくる。</p>" +
+    "<button>はじめる</button>";
+  document.body.appendChild(fake);
+  fake.querySelector("button").addEventListener("click", () => {
+    gameOver("それは偽のスタート画面。ゲームはずっと続いていた…!");
+  });
+  setTimeout(() => {
+    fake.remove();
+    if (running) setMessage("スタート画面に戻った?そんなわけない。");
+  }, 4000);
+}
+
+// サーバーエラーのお詫び報酬
+function trickApology() {
+  const d = document.createElement("div");
+  d.className = "fake-dialog fake-misc";
+  d.innerHTML =
+    "🙇 <strong>お詫び</strong><br>" +
+    "先ほどサーバーエラーが発生しました。<br>お詫びとして記録に+20秒を進呈します。" +
+    '<button class="dialog-ok">受け取る</button>';
+  d.style.left = `${Math.random() * (innerWidth - 340) + 20}px`;
+  d.style.top = `${Math.random() * (innerHeight - 280) + 80}px`;
+  document.body.appendChild(d);
+  d.querySelector(".dialog-ok").addEventListener("click", () => {
+    gameOver("サーバーエラーは起きていません。お詫び報酬も罠…!");
+  });
+  setTimeout(() => d.remove(), 7000);
+}
+
+// パラドックス確認ダイアログ。「押しません」を押した時点で負け
+function trickParadox() {
+  const d = document.createElement("div");
+  d.className = "fake-dialog fake-misc";
+  d.innerHTML =
+    "確認: 本当に何も押しませんか?" +
+    '<button class="dialog-ok">はい、押しません</button>' +
+    '<button class="dialog-ok" style="background:#888">いいえ</button>';
+  d.style.left = `${Math.random() * (innerWidth - 340) + 20}px`;
+  d.style.top = `${Math.random() * (innerHeight - 260) + 80}px`;
+  document.body.appendChild(d);
+  d.querySelectorAll("button").forEach((b) =>
+    b.addEventListener("click", () => {
+      gameOver("「押しません」を押した時点で、押してます…!");
+    })
+  );
+  setTimeout(() => d.remove(), 7000);
+}
+
+// 全画面表示のおすすめ
+function trickFullscreen() {
+  const bar = document.createElement("div");
+  bar.className = "update-bar fake-misc";
+  bar.innerHTML =
+    "🖥 全画面表示にすると、より快適にプレイできます。<button>全画面にする</button>";
+  document.body.appendChild(bar);
+  bar.querySelector("button").addEventListener("click", () => {
+    gameOver("快適になるのは罠のほうでした…!");
+  });
+  setTimeout(() => bar.remove(), 7000);
+}
+
+// 本物ボタンが0.4秒ごとに瞬間移動して暴れる
+function trickTeleportSpam() {
+  setMessage("ボタンが暴走した!むやみに動くな!");
+  let count = 0;
+  const iv = setInterval(() => {
+    if (!running || count >= 10) { clearInterval(iv); return; }
+    moveButtonTo(
+      Math.random() * (innerWidth - 200),
+      Math.random() * (innerHeight - 220) + 70
+    );
+    count++;
+  }, 400);
+}
+
 // ---- トリックのスケジューリング(時間経過でエスカレート) ----
 
 function pickTrick() {
@@ -792,10 +990,12 @@ function pickTrick() {
       trickHonestTrap, trickFakeSettings, trickMute, trickRulesLink, trickAutosave];
   } else if (t < 90) {
     pool = [trickFakePermission, trickFakeDialog, trickFakeButtons, trickFakeNotification, trickChase, trickBlackout, trickCloneButtons, trickShake, trickPermissionPrompt, trickChanceTime, trickGiant, trickFlee, trickRain, trickInvert,
-      trickBigArrow, trickReadTrap, trickSlot, trickPushPush, trickProgress99, trickFakeBack, trickMessageClose, trickHudRefresh];
+      trickBigArrow, trickReadTrap, trickSlot, trickPushPush, trickProgress99, trickFakeBack, trickMessageClose, trickHudRefresh,
+      trickGiftCard, trickFakeChat, trickFullscreen, trickTabHang];
   } else {
     pool = [trickFakeDialog, trickFakeButtons, trickFakeNotification, trickChase, trickBlackout, trickCloneButtons, trickShake, trickInvisible, trickFakeGameOver, trickFakePause, trickFakeRanking, trickPermissionPrompt, trickChanceTime, trickGiant, trickFlee, trickRain, trickInvert, trickFakeCursors, trickFlip, trickCrash, trickFakeWin, trickRewind,
-      trickHonestTrap, trickBigArrow, trickReadTrap, trickSlot, trickPushPush, trickProgress99, trickUnderCursor, trickKeyTrap, trickFakeBack, trickMessageClose, trickRulesLink, trickAutosave, trickHudRefresh];
+      trickHonestTrap, trickBigArrow, trickReadTrap, trickSlot, trickPushPush, trickProgress99, trickUnderCursor, trickKeyTrap, trickFakeBack, trickMessageClose, trickRulesLink, trickAutosave, trickHudRefresh,
+      trickGiftCard, trickFakeChat, trickFullscreen, trickTabHang, trickElectrified, trickCursorGone, trickSystemOrder, trickFakeStartScreen, trickApology, trickParadox, trickTeleportSpam];
   }
   return pool[Math.floor(Math.random() * pool.length)];
 }
@@ -849,6 +1049,8 @@ function startGame() {
     document.removeEventListener("keydown", keyTrapHandler);
     keyTrapHandler = null;
   }
+  if (clickTrapCleanup) clickTrapCleanup();
+  document.body.classList.remove("nocursor");
   overlay.classList.add("hidden");
   realButton.classList.remove("tempting");
   realButton.textContent = "押すな";
@@ -876,6 +1078,8 @@ function gameOver(reason = "押しちゃったね。") {
     document.removeEventListener("keydown", keyTrapHandler);
     keyTrapHandler = null;
   }
+  if (clickTrapCleanup) clickTrapCleanup();
+  document.body.classList.remove("nocursor");
   const score = elapsedSec();
   const best = loadHighscore();
   let recordText = "";
