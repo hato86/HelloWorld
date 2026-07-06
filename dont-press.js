@@ -116,15 +116,14 @@ function trickFakeDialog() {
   }, 600);
 
   dialog.querySelector(".dialog-ok").addEventListener("click", () => {
-    dialog.remove();
-    setMessage("そのOKは偽物。でも本物を踏まなくてえらい。");
+    gameOver("偽ダイアログのOKを押してしまった…!");
   });
   setTimeout(() => dialog.remove(), 7000);
 }
 
 // ① お得そうな偽ボタンをばらまく
 function trickFakeButtons() {
-  const count = 3;
+  const count = 4;
   for (let i = 0; i < count; i++) {
     const b = document.createElement("button");
     b.className = "fake-button";
@@ -133,8 +132,7 @@ function trickFakeButtons() {
     b.style.top = `${Math.random() * (innerHeight - 160) + 70}px`;
     document.body.appendChild(b);
     b.addEventListener("click", () => {
-      b.remove();
-      setMessage("それは偽ボタン。何も起きません。");
+      gameOver(`「${b.textContent}」は罠でした…!`);
     });
     setTimeout(() => b.remove(), 6000);
   }
@@ -182,7 +180,7 @@ function scheduleNextTrick() {
   if (!running) return;
   // 序盤は間隔長め、終盤は畳みかける
   const t = elapsedSec();
-  const delay = t < 15 ? 6000 : t < 60 ? 4500 : 2800;
+  const delay = t < 15 ? 5000 : t < 60 ? 3500 : 2200;
   trickTimer = setTimeout(() => {
     if (!running) return;
     pickTrick()();
@@ -202,7 +200,7 @@ function frame() {
     const dx = mouseX - bx;
     const dy = mouseY - by;
     const dist = Math.hypot(dx, dy) || 1;
-    const speed = 3.5;
+    const speed = 4.5;
     moveButtonTo(
       realButton.offsetLeft + (dx / dist) * speed,
       realButton.offsetTop + (dy / dist) * speed
@@ -227,7 +225,7 @@ function startGame() {
   requestAnimationFrame(frame);
 }
 
-function gameOver() {
+function gameOver(reason = "押しちゃったね。") {
   if (!running) return;
   running = false;
   chasing = false;
@@ -240,7 +238,7 @@ function gameOver() {
     recordText = "🎉 ハイスコア更新!";
   }
   resultEl.innerHTML =
-    `<p style="font-size:22px">押しちゃったね。<br>生存時間: <strong>${score.toFixed(1)}秒</strong></p>` +
+    `<p style="font-size:22px">${reason}<br>生存時間: <strong>${score.toFixed(1)}秒</strong></p>` +
     `<p>${recordText} ハイスコア: ${loadHighscore().toFixed(1)}秒</p>`;
   startButton.textContent = "もう一度";
   overlay.classList.remove("hidden");
