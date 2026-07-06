@@ -15,6 +15,7 @@ let startTime = 0;
 let mouseX = innerWidth / 2;
 let mouseY = innerHeight / 2;
 let chasing = false;        // ③ ボタンがカーソルを追いかけるモード
+let frozenTimer = false;    // 偽ポーズ中はタイマー表示を止める
 let trickTimer = null;
 
 document.addEventListener("mousemove", (e) => {
@@ -220,6 +221,111 @@ function trickInvisible() {
   setTimeout(() => { realButton.style.opacity = "1"; }, 3000);
 }
 
+// ① 偽Cookie同意バナー。「同意」も「拒否」も罠
+function trickCookieBanner() {
+  const bar = document.createElement("div");
+  bar.className = "cookie-banner";
+  bar.innerHTML =
+    "🍪 当サイトは体験向上のためCookieを使用します。" +
+    '<button class="agree">同意する</button><button class="deny">拒否</button>';
+  document.body.appendChild(bar);
+  bar.querySelector(".agree").addEventListener("click", () => {
+    gameOver("Cookieに同意してしまった…!それも罠。");
+  });
+  bar.querySelector(".deny").addEventListener("click", () => {
+    gameOver("「拒否」を押す反射、狙い通りです…!");
+  });
+  setTimeout(() => bar.remove(), 7000);
+}
+
+// ① 偽の通知許可ダイアログ。「ブロック」を押す癖を狩る
+function trickPermissionPrompt() {
+  const p = document.createElement("div");
+  p.className = "perm-prompt";
+  p.innerHTML =
+    "🔔 <strong>dont-press.game</strong> が通知の許可を求めています" +
+    '<div class="perm-actions"><button class="block">ブロック</button><button class="allow">許可</button></div>';
+  document.body.appendChild(p);
+  p.querySelector(".block").addEventListener("click", () => {
+    gameOver("「ブロック」は反射で押しがち。罠でした…!");
+  });
+  p.querySelector(".allow").addEventListener("click", () => {
+    gameOver("通知を許可してしまった…!罠でした。");
+  });
+  setTimeout(() => p.remove(), 7000);
+}
+
+// ① 偽ブラウザ更新バー。「更新」も「×」も罠
+function trickUpdateBar() {
+  const bar = document.createElement("div");
+  bar.className = "update-bar";
+  bar.innerHTML =
+    "⬆️ 新しいバージョンが利用可能です。" +
+    '<button class="update">更新</button><button class="close">×</button>';
+  document.body.appendChild(bar);
+  bar.querySelector(".update").addEventListener("click", () => {
+    gameOver("偽の更新バーでした…!");
+  });
+  bar.querySelector(".close").addEventListener("click", () => {
+    gameOver("「×」で閉じる癖、読まれてました…!");
+  });
+  setTimeout(() => bar.remove(), 7000);
+}
+
+// ② 偽ポーズ画面。タイマーが止まって見えるが「再開」は罠。待てば復帰する
+function trickFakePause() {
+  frozenTimer = true;
+  const pause = document.createElement("div");
+  pause.className = "fake-over";
+  pause.innerHTML =
+    "<h1>⏸ 一時停止中</h1><p>タイマーは停止しています</p><button>再開</button>";
+  document.body.appendChild(pause);
+  pause.querySelector("button").addEventListener("click", () => {
+    gameOver("ポーズは存在しません。「再開」は罠でした…!");
+  });
+  setTimeout(() => {
+    pause.remove();
+    frozenTimer = false;
+    if (running) setMessage("ポーズなんて機能はない。時間は流れていた。");
+  }, 4500);
+}
+
+// ② 偽ランキング登録フォーム。入力欄も登録ボタンも罠
+function trickFakeRanking() {
+  const form = document.createElement("div");
+  form.className = "fake-dialog rank-form";
+  form.innerHTML =
+    "🏆 ハイスコア達成!ランキングに登録しよう<br>" +
+    '<input type="text" placeholder="名前を入力">' +
+    '<button class="dialog-ok">登録する</button>';
+  form.style.left = `${Math.random() * (innerWidth - 340) + 20}px`;
+  form.style.top = `${Math.random() * (innerHeight - 300) + 80}px`;
+  document.body.appendChild(form);
+  const die = () => gameOver("ランキング登録は存在しません。罠でした…!");
+  form.querySelector("input").addEventListener("mousedown", die);
+  form.querySelector(".dialog-ok").addEventListener("click", die);
+  setTimeout(() => form.remove(), 7000);
+}
+
+// ② チャンスタイム詐欺。「5秒間押してもセーフ」はもちろん全部嘘
+function trickChanceTime() {
+  realButton.classList.add("tempting");
+  realButton.textContent = "今だけセーフ!";
+  let n = 5;
+  setMessage(`🎉 チャンスタイム!あと${n}秒は押してもセーフ!`, 0);
+  const iv = setInterval(() => {
+    n--;
+    if (!running || n <= 0) {
+      clearInterval(iv);
+      realButton.classList.remove("tempting");
+      realButton.textContent = "押すな";
+      if (running) setMessage("チャンスタイム終了。……最初から嘘だけどね。");
+      return;
+    }
+    setMessage(`🎉 チャンスタイム!あと${n}秒は押してもセーフ!`, 0);
+  }, 1000);
+}
+
 // ---- トリックのスケジューリング(時間経過でエスカレート) ----
 
 function pickTrick() {
@@ -230,11 +336,11 @@ function pickTrick() {
   } else if (t < 30) {
     pool = [trickTaunt, trickFakeCountdown, trickFakePermission];
   } else if (t < 60) {
-    pool = [trickTaunt, trickFakeCountdown, trickFakePermission, trickFakeDialog, trickFakeButtons, trickFakeNotification];
+    pool = [trickTaunt, trickFakeCountdown, trickFakePermission, trickFakeDialog, trickFakeButtons, trickFakeNotification, trickCookieBanner, trickUpdateBar];
   } else if (t < 90) {
-    pool = [trickFakePermission, trickFakeDialog, trickFakeButtons, trickFakeNotification, trickChase, trickBlackout, trickCloneButtons, trickShake];
+    pool = [trickFakePermission, trickFakeDialog, trickFakeButtons, trickFakeNotification, trickChase, trickBlackout, trickCloneButtons, trickShake, trickPermissionPrompt, trickChanceTime];
   } else {
-    pool = [trickFakeDialog, trickFakeButtons, trickFakeNotification, trickChase, trickBlackout, trickCloneButtons, trickShake, trickInvisible, trickFakeGameOver];
+    pool = [trickFakeDialog, trickFakeButtons, trickFakeNotification, trickChase, trickBlackout, trickCloneButtons, trickShake, trickInvisible, trickFakeGameOver, trickFakePause, trickFakeRanking, trickPermissionPrompt, trickChanceTime];
   }
   return pool[Math.floor(Math.random() * pool.length)];
 }
@@ -255,7 +361,7 @@ function scheduleNextTrick() {
 
 function frame() {
   if (!running) return;
-  timerEl.textContent = `${elapsedSec().toFixed(1)}秒`;
+  if (!frozenTimer) timerEl.textContent = `${elapsedSec().toFixed(1)}秒`;
 
   if (chasing) {
     const bx = realButton.offsetLeft + realButton.offsetWidth / 2;
@@ -275,9 +381,10 @@ function frame() {
 // ---- ゲーム開始と終了 ----
 
 function startGame() {
-  document.querySelectorAll(".fake-button, .fake-dialog, .clone-button, .toast, .fake-over").forEach((el) => el.remove());
+  document.querySelectorAll(".fake-button, .fake-dialog, .clone-button, .toast, .fake-over, .cookie-banner, .perm-prompt, .update-bar").forEach((el) => el.remove());
   document.body.classList.remove("shaking");
   realButton.style.opacity = "1";
+  frozenTimer = false;
   overlay.classList.add("hidden");
   realButton.classList.remove("tempting");
   realButton.textContent = "押すな";
@@ -298,6 +405,7 @@ function gameOver(reason = "押しちゃったね。") {
   document.body.classList.remove("shaking");
   document.querySelectorAll(".fake-over").forEach((el) => el.remove());
   realButton.style.opacity = "1";
+  frozenTimer = false;
   const score = elapsedSec();
   const best = loadHighscore();
   let recordText = "";
