@@ -16,6 +16,7 @@ let mouseX = innerWidth / 2;
 let mouseY = innerHeight / 2;
 let chasing = false;        // ③ ボタンがカーソルを追いかけるモード
 let frozenTimer = false;    // 偽ポーズ中はタイマー表示を止める
+let fleeing = false;        // ボタンがカーソルから逃げるモード
 let trickTimer = null;
 
 document.addEventListener("mousemove", (e) => {
@@ -326,6 +327,172 @@ function trickChanceTime() {
   }, 1000);
 }
 
+// ③ 偽カーソルが4つ増える。どれが本物のカーソルか分からなくなる
+function trickFakeCursors() {
+  setMessage("カーソルが増えた!?本物はどれだ!");
+  const offsets = [[120, 60], [-140, 90], [80, -110], [-90, -70]];
+  const cursors = offsets.map(() => {
+    const c = document.createElement("div");
+    c.className = "fake-cursor";
+    c.textContent = "➤";
+    document.body.appendChild(c);
+    return c;
+  });
+  const follow = (e) => {
+    cursors.forEach((c, i) => {
+      c.style.left = `${e.clientX + offsets[i][0]}px`;
+      c.style.top = `${e.clientY + offsets[i][1]}px`;
+    });
+  };
+  document.addEventListener("mousemove", follow);
+  setTimeout(() => {
+    document.removeEventListener("mousemove", follow);
+    cursors.forEach((c) => c.remove());
+  }, 6000);
+}
+
+// ③ 本物ボタンが巨大化して誤クリック域が激増する
+function trickGiant() {
+  setMessage("ボタンが巨大化!触れるな!");
+  realButton.style.transition = "transform 1.2s";
+  realButton.style.transform = "scale(3.2)";
+  setTimeout(() => {
+    realButton.style.transform = "scale(1)";
+  }, 4500);
+}
+
+// ③ 偽の赤ボタンが雨のように降ってくる(全部罠)
+function trickRain() {
+  setMessage("ボタンの雨だ!よけろ!");
+  for (let i = 0; i < 8; i++) {
+    setTimeout(() => {
+      if (!running) return;
+      const b = document.createElement("button");
+      b.className = "clone-button";
+      b.textContent = "押すな";
+      b.style.left = `${Math.random() * (innerWidth - 160)}px`;
+      b.style.top = "-80px";
+      b.style.transition = `top ${2.5 + Math.random() * 2}s linear`;
+      document.body.appendChild(b);
+      b.addEventListener("click", () => {
+        gameOver("降ってきたボタンに触れてしまった…!");
+      });
+      requestAnimationFrame(() => { b.style.top = `${innerHeight + 100}px`; });
+      setTimeout(() => b.remove(), 5000);
+    }, i * 350);
+  }
+}
+
+// ① 偽ウイルス警告。「スキャン」も「無視」も罠
+function trickVirus() {
+  const d = document.createElement("div");
+  d.className = "fake-dialog";
+  d.style.background = "#ffe6e6";
+  d.innerHTML =
+    "🚨 <strong>警告: あなたのPCは危険にさらされています!</strong><br>" +
+    "ウイルスが3件検出されました。" +
+    '<button class="dialog-ok scan">今すぐスキャン</button>' +
+    '<button class="dialog-ok" style="background:#888">無視する</button>';
+  d.style.left = `${Math.random() * (innerWidth - 340) + 20}px`;
+  d.style.top = `${Math.random() * (innerHeight - 280) + 80}px`;
+  document.body.appendChild(d);
+  d.querySelectorAll("button").forEach((b) =>
+    b.addEventListener("click", () => {
+      gameOver("偽ウイルス警告に反応してしまった…!");
+    })
+  );
+  setTimeout(() => d.remove(), 7000);
+}
+
+// ① 偽ダウンロード完了通知
+function trickDownload() {
+  const bar = document.createElement("div");
+  bar.className = "dl-bar";
+  bar.innerHTML = "📄 score_backup.zip を保存しました<button>開く</button>";
+  document.body.appendChild(bar);
+  bar.querySelector("button").addEventListener("click", () => {
+    gameOver("そんなファイルはダウンロードされていません…!");
+  });
+  setTimeout(() => bar.remove(), 7000);
+}
+
+// ③ 画面が180度回転する
+function trickFlip() {
+  setMessage("世界が回る…!");
+  document.body.classList.add("flipped");
+  setTimeout(() => document.body.classList.remove("flipped"), 4000);
+}
+
+// ② 偽クラッシュ画面。「再読み込み」は罠。待てば復帰
+function trickCrash() {
+  const c = document.createElement("div");
+  c.className = "fake-over";
+  c.innerHTML =
+    "<h1>⚠️ ゲームがクラッシュしました</h1>" +
+    "<p>エラーコード: 0xDEAD_BUTTON</p>" +
+    "<button>再読み込み</button>";
+  document.body.appendChild(c);
+  c.querySelector("button").addEventListener("click", () => {
+    gameOver("クラッシュは演出。「再読み込み」は罠でした…!");
+  });
+  setTimeout(() => {
+    c.remove();
+    if (running) setMessage("クラッシュも嘘。よく我慢した。");
+  }, 4000);
+}
+
+// ② ボタンが逃げ回って挑発してくる(追いかけてクリックしたら思うツボ)
+function trickFlee() {
+  setMessage("「押せるもんなら押してみな!」");
+  fleeing = true;
+  setTimeout(() => {
+    fleeing = false;
+    if (running) setMessage("……追いかけなかった?えらい。");
+  }, 5000);
+}
+
+// ② 偽の勝利画面。「報酬を受け取る」は罠
+function trickFakeWin() {
+  const w = document.createElement("div");
+  w.className = "fake-over";
+  w.innerHTML =
+    "<h1>🎉 おめでとう!</h1>" +
+    "<p>勝利条件を達成しました。<br>報酬を受け取ってゲームを終了できます。</p>" +
+    "<button>報酬を受け取る</button>";
+  document.body.appendChild(w);
+  w.querySelector("button").addEventListener("click", () => {
+    gameOver("このゲームに勝利条件はありません。報酬も罠…!");
+  });
+  setTimeout(() => {
+    w.remove();
+    if (running) setMessage("勝利条件など最初からない。耐え続けろ。");
+  }, 4000);
+}
+
+// ③ 画面の色が反転する
+function trickInvert() {
+  setMessage("目がおかしくなったわけじゃない。色が反転しただけ。");
+  document.body.classList.add("inverted");
+  setTimeout(() => document.body.classList.remove("inverted"), 3000);
+}
+
+// ② タイマーが巻き戻って見える(表示だけの嘘)
+function trickRewind() {
+  frozenTimer = true;
+  let fake = elapsedSec();
+  setMessage("!? 記録が巻き戻っている!?", 0);
+  const iv = setInterval(() => {
+    if (!running) { clearInterval(iv); return; }
+    fake = Math.max(0, fake - 1.7);
+    timerEl.textContent = `${fake.toFixed(1)}秒`;
+  }, 100);
+  setTimeout(() => {
+    clearInterval(iv);
+    frozenTimer = false;
+    if (running) setMessage("表示だけの嘘でした。本当の記録は無事。");
+  }, 5000);
+}
+
 // ---- トリックのスケジューリング(時間経過でエスカレート) ----
 
 function pickTrick() {
@@ -336,11 +503,11 @@ function pickTrick() {
   } else if (t < 30) {
     pool = [trickTaunt, trickFakeCountdown, trickFakePermission];
   } else if (t < 60) {
-    pool = [trickTaunt, trickFakeCountdown, trickFakePermission, trickFakeDialog, trickFakeButtons, trickFakeNotification, trickCookieBanner, trickUpdateBar];
+    pool = [trickTaunt, trickFakeCountdown, trickFakePermission, trickFakeDialog, trickFakeButtons, trickFakeNotification, trickCookieBanner, trickUpdateBar, trickDownload, trickVirus];
   } else if (t < 90) {
-    pool = [trickFakePermission, trickFakeDialog, trickFakeButtons, trickFakeNotification, trickChase, trickBlackout, trickCloneButtons, trickShake, trickPermissionPrompt, trickChanceTime];
+    pool = [trickFakePermission, trickFakeDialog, trickFakeButtons, trickFakeNotification, trickChase, trickBlackout, trickCloneButtons, trickShake, trickPermissionPrompt, trickChanceTime, trickGiant, trickFlee, trickRain, trickInvert];
   } else {
-    pool = [trickFakeDialog, trickFakeButtons, trickFakeNotification, trickChase, trickBlackout, trickCloneButtons, trickShake, trickInvisible, trickFakeGameOver, trickFakePause, trickFakeRanking, trickPermissionPrompt, trickChanceTime];
+    pool = [trickFakeDialog, trickFakeButtons, trickFakeNotification, trickChase, trickBlackout, trickCloneButtons, trickShake, trickInvisible, trickFakeGameOver, trickFakePause, trickFakeRanking, trickPermissionPrompt, trickChanceTime, trickGiant, trickFlee, trickRain, trickInvert, trickFakeCursors, trickFlip, trickCrash, trickFakeWin, trickRewind];
   }
   return pool[Math.floor(Math.random() * pool.length)];
 }
@@ -363,17 +530,20 @@ function frame() {
   if (!running) return;
   if (!frozenTimer) timerEl.textContent = `${elapsedSec().toFixed(1)}秒`;
 
-  if (chasing) {
+  if (chasing || fleeing) {
     const bx = realButton.offsetLeft + realButton.offsetWidth / 2;
     const by = realButton.offsetTop + realButton.offsetHeight / 2;
     const dx = mouseX - bx;
     const dy = mouseY - by;
     const dist = Math.hypot(dx, dy) || 1;
     const speed = 4.5;
-    moveButtonTo(
-      realButton.offsetLeft + (dx / dist) * speed,
-      realButton.offsetTop + (dy / dist) * speed
-    );
+    const dir = chasing ? 1 : -1; // 追跡は近づき、逃走は離れる
+    if (!(fleeing && dist > 350)) {
+      moveButtonTo(
+        realButton.offsetLeft + (dx / dist) * speed * dir,
+        realButton.offsetTop + (dy / dist) * speed * dir
+      );
+    }
   }
   requestAnimationFrame(frame);
 }
@@ -381,10 +551,12 @@ function frame() {
 // ---- ゲーム開始と終了 ----
 
 function startGame() {
-  document.querySelectorAll(".fake-button, .fake-dialog, .clone-button, .toast, .fake-over, .cookie-banner, .perm-prompt, .update-bar").forEach((el) => el.remove());
-  document.body.classList.remove("shaking");
+  document.querySelectorAll(".fake-button, .fake-dialog, .clone-button, .toast, .fake-over, .cookie-banner, .perm-prompt, .update-bar, .dl-bar, .fake-cursor").forEach((el) => el.remove());
+  document.body.classList.remove("shaking", "flipped", "inverted");
   realButton.style.opacity = "1";
+  realButton.style.transform = "";
   frozenTimer = false;
+  fleeing = false;
   overlay.classList.add("hidden");
   realButton.classList.remove("tempting");
   realButton.textContent = "押すな";
@@ -402,10 +574,12 @@ function gameOver(reason = "押しちゃったね。") {
   running = false;
   chasing = false;
   clearTimeout(trickTimer);
-  document.body.classList.remove("shaking");
-  document.querySelectorAll(".fake-over").forEach((el) => el.remove());
+  document.body.classList.remove("shaking", "flipped", "inverted");
+  document.querySelectorAll(".fake-over, .fake-cursor").forEach((el) => el.remove());
   realButton.style.opacity = "1";
+  realButton.style.transform = "";
   frozenTimer = false;
+  fleeing = false;
   const score = elapsedSec();
   const best = loadHighscore();
   let recordText = "";
