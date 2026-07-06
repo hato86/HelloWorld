@@ -707,7 +707,7 @@ function trickFakeBack() {
   document.body.appendChild(a);
   a.addEventListener("click", (e) => {
     e.preventDefault();
-    gameOver("その「もどる」は偽物。本物は右下です…!");
+    gameOver("「もどる」リンクなんて存在しません。偽物です…!");
   });
   setTimeout(() => a.remove(), 10000);
 }
