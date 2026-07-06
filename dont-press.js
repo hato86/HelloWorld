@@ -159,6 +159,67 @@ function trickBlackout() {
   }, 900);
 }
 
+// ① 本物そっくりの「押すな」ボタンが増殖する(全部罠)
+function trickCloneButtons() {
+  setMessage("増えた!? どれも押すな!");
+  for (let i = 0; i < 3; i++) {
+    const c = document.createElement("button");
+    c.className = "clone-button";
+    c.textContent = "押すな";
+    c.style.left = `${Math.random() * (innerWidth - 200) + 10}px`;
+    c.style.top = `${Math.random() * (innerHeight - 220) + 70}px`;
+    document.body.appendChild(c);
+    c.addEventListener("click", () => {
+      gameOver("それは偽物の「押すな」ボタンでした…!(どっちみち押しちゃダメ)");
+    });
+    setTimeout(() => c.remove(), 7000);
+  }
+}
+
+// ② 偽の通知トースト。「開く」を押したら負け
+function trickFakeNotification() {
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  toast.innerHTML = "📩 新着メッセージが1件あります<button>開く</button>";
+  document.body.appendChild(toast);
+  toast.querySelector("button").addEventListener("click", () => {
+    gameOver("通知の「開く」は罠でした…!");
+  });
+  setTimeout(() => toast.remove(), 6000);
+}
+
+// ② 偽のゲームオーバー画面。「もう一度」を押したら本当に負け
+function trickFakeGameOver() {
+  const fake = document.createElement("div");
+  fake.className = "fake-over";
+  fake.innerHTML =
+    "<h1>押したら負け</h1>" +
+    `<p style="font-size:22px">押しちゃったね。<br>生存時間: <strong>${elapsedSec().toFixed(1)}秒</strong></p>` +
+    "<button>もう一度</button>";
+  document.body.appendChild(fake);
+  fake.querySelector("button").addEventListener("click", () => {
+    gameOver("それは偽のゲームオーバー画面。ゲームは続いていました…!");
+  });
+  setTimeout(() => {
+    fake.remove();
+    if (running) setMessage("……という夢でした。ゲームは続行中。");
+  }, 4000);
+}
+
+// ③ 画面が揺れて手元が狂う
+function trickShake() {
+  setMessage("地震だ!手元に注意!");
+  document.body.classList.add("shaking");
+  setTimeout(() => document.body.classList.remove("shaking"), 3000);
+}
+
+// ③ 本物ボタンが透明になる(そこにいるのに見えない)
+function trickInvisible() {
+  setMessage("ボタンが見えなくても、そこにいる。");
+  realButton.style.opacity = "0";
+  setTimeout(() => { realButton.style.opacity = "1"; }, 3000);
+}
+
 // ---- トリックのスケジューリング(時間経過でエスカレート) ----
 
 function pickTrick() {
@@ -169,9 +230,11 @@ function pickTrick() {
   } else if (t < 30) {
     pool = [trickTaunt, trickFakeCountdown, trickFakePermission];
   } else if (t < 60) {
-    pool = [trickTaunt, trickFakeCountdown, trickFakePermission, trickFakeDialog, trickFakeButtons];
+    pool = [trickTaunt, trickFakeCountdown, trickFakePermission, trickFakeDialog, trickFakeButtons, trickFakeNotification];
+  } else if (t < 90) {
+    pool = [trickFakePermission, trickFakeDialog, trickFakeButtons, trickFakeNotification, trickChase, trickBlackout, trickCloneButtons, trickShake];
   } else {
-    pool = [trickFakePermission, trickFakeDialog, trickFakeButtons, trickChase, trickBlackout];
+    pool = [trickFakeDialog, trickFakeButtons, trickFakeNotification, trickChase, trickBlackout, trickCloneButtons, trickShake, trickInvisible, trickFakeGameOver];
   }
   return pool[Math.floor(Math.random() * pool.length)];
 }
@@ -212,7 +275,9 @@ function frame() {
 // ---- ゲーム開始と終了 ----
 
 function startGame() {
-  document.querySelectorAll(".fake-button, .fake-dialog").forEach((el) => el.remove());
+  document.querySelectorAll(".fake-button, .fake-dialog, .clone-button, .toast, .fake-over").forEach((el) => el.remove());
+  document.body.classList.remove("shaking");
+  realButton.style.opacity = "1";
   overlay.classList.add("hidden");
   realButton.classList.remove("tempting");
   realButton.textContent = "押すな";
@@ -230,6 +295,9 @@ function gameOver(reason = "押しちゃったね。") {
   running = false;
   chasing = false;
   clearTimeout(trickTimer);
+  document.body.classList.remove("shaking");
+  document.querySelectorAll(".fake-over").forEach((el) => el.remove());
+  realButton.style.opacity = "1";
   const score = elapsedSec();
   const best = loadHighscore();
   let recordText = "";
