@@ -493,6 +493,291 @@ function trickRewind() {
   }, 5000);
 }
 
+// ---- 追加トリック: あからさま系(逆に騙す) ----
+
+// 「正直に言う、これは罠」→3秒後に「嘘。実はボーナス」と言い出す(ずっと罠)
+function trickHonestTrap() {
+  const b = document.createElement("button");
+  b.className = "clone-button fake-misc";
+  b.style.background = "#8e44ad";
+  b.style.borderColor = "#6c3483";
+  b.textContent = "正直に言う。これは罠だ";
+  b.style.left = `${Math.random() * (innerWidth - 300) + 20}px`;
+  b.style.top = `${Math.random() * (innerHeight - 250) + 80}px`;
+  document.body.appendChild(b);
+  setTimeout(() => {
+    if (b.isConnected) {
+      b.textContent = "…は嘘。実は+30秒ボーナス";
+      setMessage("さっきのは嘘らしいよ?どうする?");
+    }
+  }, 3000);
+  b.addEventListener("click", () => {
+    gameOver("「正直な罠」は最後まで罠でした…!");
+  });
+  setTimeout(() => b.remove(), 9000);
+}
+
+// 巨大矢印が本物を指して「PRESS HERE!!!」
+function trickBigArrow() {
+  realButton.classList.add("tempting");
+  const arrow = document.createElement("div");
+  arrow.className = "fake-misc";
+  arrow.textContent = "⬇⬇⬇ PRESS HERE!!! ⬇⬇⬇";
+  arrow.style.cssText =
+    "position:absolute;font-size:34px;font-weight:bold;color:#ff0;pointer-events:none;z-index:4;text-shadow:0 0 12px #f00;";
+  const place = () => {
+    arrow.style.left = `${realButton.offsetLeft - 80}px`;
+    arrow.style.top = `${realButton.offsetTop - 60}px`;
+  };
+  place();
+  const iv = setInterval(() => {
+    place();
+    arrow.style.visibility = arrow.style.visibility === "hidden" ? "visible" : "hidden";
+  }, 300);
+  document.body.appendChild(arrow);
+  setTimeout(() => {
+    clearInterval(iv);
+    arrow.remove();
+    realButton.classList.remove("tempting");
+    realButton.textContent = "押すな";
+  }, 5000);
+}
+
+// 「このメッセージを読んだら負け」→「読んでません」ボタン
+function trickReadTrap() {
+  setMessage("⚠️ このメッセージを読んだら負けです。");
+  setTimeout(() => {
+    if (!running) return;
+    const b = document.createElement("button");
+    b.className = "fake-button fake-misc";
+    b.textContent = "読んでません";
+    b.style.left = `${innerWidth / 2 - 70}px`;
+    b.style.top = `${innerHeight / 2 + 120}px`;
+    document.body.appendChild(b);
+    b.addEventListener("click", () => {
+      gameOver("「読んでません」を押した時点で読んでますよね…!");
+    });
+    setTimeout(() => b.remove(), 6000);
+  }, 1200);
+}
+
+// スロットが「あたり」を出してくる(仕込み)
+function trickSlot() {
+  const d = document.createElement("div");
+  d.className = "fake-dialog fake-misc";
+  d.innerHTML =
+    '<div style="font-size:34px;text-align:center" class="slot">🎰</div>' +
+    '<div style="text-align:center">回転中…</div>';
+  d.style.left = `${Math.random() * (innerWidth - 340) + 20}px`;
+  d.style.top = `${Math.random() * (innerHeight - 280) + 80}px`;
+  document.body.appendChild(d);
+  const slotEl = d.querySelector(".slot");
+  const faces = ["🍒🍋⭐", "⭐🍒🍋", "🍋⭐🍒"];
+  let i = 0;
+  const iv = setInterval(() => {
+    slotEl.textContent = faces[i++ % faces.length];
+  }, 120);
+  setTimeout(() => {
+    clearInterval(iv);
+    if (!d.isConnected) return;
+    slotEl.textContent = "🍒🍒🍒";
+    d.querySelector("div:last-child").innerHTML =
+      'あたり!<button class="dialog-ok">賞金を受け取る</button>';
+    d.querySelector(".dialog-ok").addEventListener("click", () => {
+      gameOver("そのスロット、最初から仕込みです…!");
+    });
+  }, 2500);
+  setTimeout(() => d.remove(), 9000);
+}
+
+// 画面中「PUSH! PUSH! PUSH!」の大合唱
+function trickPushPush() {
+  realButton.classList.add("tempting");
+  const words = [];
+  for (let i = 0; i < 10; i++) {
+    const w = document.createElement("div");
+    w.className = "fake-misc";
+    w.textContent = "PUSH!";
+    w.style.cssText =
+      `position:absolute;left:${Math.random() * (innerWidth - 120)}px;top:${Math.random() * (innerHeight - 100) + 60}px;` +
+      `font-size:${24 + Math.random() * 30}px;font-weight:bold;color:#ff5252;pointer-events:none;z-index:4;transform:rotate(${Math.random() * 40 - 20}deg);`;
+    document.body.appendChild(w);
+    words.push(w);
+  }
+  setTimeout(() => {
+    words.forEach((w) => w.remove());
+    realButton.classList.remove("tempting");
+    realButton.textContent = "押すな";
+    setMessage("圧に負けなかったか。");
+  }, 4000);
+}
+
+// ---- 追加トリック: 初見殺し系 ----
+
+// 右上にゲームUIのふりをした⚙設定アイコン
+function trickFakeSettings() {
+  const g = document.createElement("div");
+  g.className = "fake-misc";
+  g.textContent = "⚙";
+  g.style.cssText =
+    "position:fixed;top:12px;right:14px;font-size:26px;cursor:pointer;color:#99a;z-index:6;";
+  document.body.appendChild(g);
+  g.addEventListener("click", () => {
+    gameOver("このゲームに設定画面はありません…!");
+  });
+  setTimeout(() => g.remove(), 9000);
+}
+
+// 「BGM: ON」のミュートアイコン(BGMなんて最初からない)
+function trickMute() {
+  setMessage("♪〜 ♪♪〜(うるさいBGMが流れている気がする)");
+  const m = document.createElement("div");
+  m.className = "fake-misc";
+  m.textContent = "🔊 BGM: ON";
+  m.style.cssText =
+    "position:fixed;top:48px;right:14px;font-size:14px;cursor:pointer;color:#bbc;z-index:6;background:#22252e;padding:6px 10px;border-radius:6px;";
+  document.body.appendChild(m);
+  m.addEventListener("click", () => {
+    gameOver("BGMなんて最初から流れていません…!");
+  });
+  setTimeout(() => m.remove(), 8000);
+}
+
+// 「実績解除まで99%」の完了ボタン
+function trickProgress99() {
+  const bar = document.createElement("div");
+  bar.className = "dl-bar fake-misc";
+  bar.innerHTML =
+    '🏅 実績「鉄の意志」解除まで <strong>99%</strong>' +
+    '<div style="background:#444;border-radius:4px;height:8px;margin:6px 0"><div style="background:#2ecc71;width:99%;height:8px;border-radius:4px"></div></div>' +
+    "<button>完了する</button>";
+  document.body.appendChild(bar);
+  bar.querySelector("button").addEventListener("click", () => {
+    gameOver("実績は勝手に解除されるもの。「完了する」は罠…!");
+  });
+  setTimeout(() => bar.remove(), 8000);
+}
+
+// カーソルの真下に無音でフェードインするボタン
+function trickUnderCursor() {
+  const b = document.createElement("button");
+  b.className = "clone-button fake-misc";
+  b.textContent = "押すな";
+  b.style.left = `${mouseX - 70}px`;
+  b.style.top = `${mouseY - 30}px`;
+  b.style.opacity = "0";
+  b.style.transition = "opacity 1.5s";
+  document.body.appendChild(b);
+  requestAnimationFrame(() => { b.style.opacity = "1"; });
+  b.addEventListener("click", () => {
+    gameOver("手元に湧いたボタンをうっかり…!");
+  });
+  setTimeout(() => b.remove(), 4500);
+}
+
+// 「Sキーで誘惑を停止できる」という嘘ヒント。Sを押したら負け
+let keyTrapHandler = null;
+function trickKeyTrap() {
+  setMessage("💡 ヒント: Sキーを押すと誘惑を5秒間停止できます。", 0);
+  keyTrapHandler = (e) => {
+    if (e.key.toLowerCase() === "s") {
+      gameOver("キーボードにも罠を仕掛けておきました…!");
+    }
+  };
+  document.addEventListener("keydown", keyTrapHandler);
+  setTimeout(() => {
+    if (keyTrapHandler) {
+      document.removeEventListener("keydown", keyTrapHandler);
+      keyTrapHandler = null;
+    }
+    if (running) setMessage("Sキーを押さなかった?正解。あれも罠。");
+  }, 6000);
+}
+
+// ---- 追加トリック: 自然すぎ系 ----
+
+// 本物そっくりの偽「← もどる」リンク
+function trickFakeBack() {
+  const a = document.createElement("a");
+  a.className = "fake-misc";
+  a.href = "#";
+  a.textContent = "← もどる";
+  a.style.cssText =
+    "position:fixed;bottom:10px;left:12px;color:#667;font-size:12px;z-index:11;";
+  document.body.appendChild(a);
+  a.addEventListener("click", (e) => {
+    e.preventDefault();
+    gameOver("その「もどる」は偽物。本物は右下です…!");
+  });
+  setTimeout(() => a.remove(), 10000);
+}
+
+// 煽りメッセージの下に小さな「[メッセージを閉じる]」
+function trickMessageClose() {
+  setMessage("この煽りメッセージ、目障りだよね。", 0);
+  const x = document.createElement("a");
+  x.className = "fake-misc";
+  x.href = "#";
+  x.textContent = "[メッセージを閉じる]";
+  x.style.cssText =
+    "position:fixed;top:140px;left:50%;transform:translateX(-50%);color:#888;font-size:12px;z-index:6;";
+  document.body.appendChild(x);
+  x.addEventListener("click", (e) => {
+    e.preventDefault();
+    gameOver("メッセージを閉じる機能などありません…!");
+  });
+  setTimeout(() => {
+    x.remove();
+    if (running) setMessage("");
+  }, 7000);
+}
+
+// 「詳しいルールはこちら」リンク
+function trickRulesLink() {
+  const a = document.createElement("a");
+  a.className = "fake-misc";
+  a.href = "#";
+  a.textContent = "詳しいルールはこちら";
+  a.style.cssText =
+    "position:fixed;bottom:12px;left:50%;transform:translateX(-50%);color:#5b8dd6;font-size:13px;z-index:6;";
+  document.body.appendChild(a);
+  a.addEventListener("click", (e) => {
+    e.preventDefault();
+    gameOver("ルールは「何も押すな」の一つだけ。リンクも罠…!");
+  });
+  setTimeout(() => a.remove(), 9000);
+}
+
+// 地味な「オートセーブ済み [手動保存]」UI
+function trickAutosave() {
+  const s = document.createElement("div");
+  s.className = "fake-misc";
+  s.innerHTML =
+    '💾 オートセーブ済み: たった今 <button style="font-size:11px;padding:2px 8px;margin-left:4px;cursor:pointer">手動保存</button>';
+  s.style.cssText =
+    "position:fixed;bottom:36px;left:50%;transform:translateX(-50%);color:#778;font-size:12px;z-index:6;";
+  document.body.appendChild(s);
+  s.querySelector("button").addEventListener("click", () => {
+    gameOver("セーブ機能はありません。地味なUIこそ怪しめ…!");
+  });
+  setTimeout(() => s.remove(), 9000);
+}
+
+// タイマー横の小さな「⟳」再計算アイコン
+function trickHudRefresh() {
+  const r = document.createElement("div");
+  r.className = "fake-misc";
+  r.textContent = "⟳";
+  r.style.cssText =
+    "position:fixed;top:16px;left:calc(50% + 90px);font-size:20px;color:#9aa;cursor:pointer;z-index:6;";
+  r.title = "スコアを再計算";
+  document.body.appendChild(r);
+  r.addEventListener("click", () => {
+    gameOver("スコアの再計算は不要です。それも罠…!");
+  });
+  setTimeout(() => r.remove(), 9000);
+}
+
 // ---- トリックのスケジューリング(時間経過でエスカレート) ----
 
 function pickTrick() {
@@ -503,11 +788,14 @@ function pickTrick() {
   } else if (t < 30) {
     pool = [trickTaunt, trickFakeCountdown, trickFakePermission];
   } else if (t < 60) {
-    pool = [trickTaunt, trickFakeCountdown, trickFakePermission, trickFakeDialog, trickFakeButtons, trickFakeNotification, trickCookieBanner, trickUpdateBar, trickDownload, trickVirus];
+    pool = [trickTaunt, trickFakeCountdown, trickFakePermission, trickFakeDialog, trickFakeButtons, trickFakeNotification, trickCookieBanner, trickUpdateBar, trickDownload, trickVirus,
+      trickHonestTrap, trickFakeSettings, trickMute, trickRulesLink, trickAutosave];
   } else if (t < 90) {
-    pool = [trickFakePermission, trickFakeDialog, trickFakeButtons, trickFakeNotification, trickChase, trickBlackout, trickCloneButtons, trickShake, trickPermissionPrompt, trickChanceTime, trickGiant, trickFlee, trickRain, trickInvert];
+    pool = [trickFakePermission, trickFakeDialog, trickFakeButtons, trickFakeNotification, trickChase, trickBlackout, trickCloneButtons, trickShake, trickPermissionPrompt, trickChanceTime, trickGiant, trickFlee, trickRain, trickInvert,
+      trickBigArrow, trickReadTrap, trickSlot, trickPushPush, trickProgress99, trickFakeBack, trickMessageClose, trickHudRefresh];
   } else {
-    pool = [trickFakeDialog, trickFakeButtons, trickFakeNotification, trickChase, trickBlackout, trickCloneButtons, trickShake, trickInvisible, trickFakeGameOver, trickFakePause, trickFakeRanking, trickPermissionPrompt, trickChanceTime, trickGiant, trickFlee, trickRain, trickInvert, trickFakeCursors, trickFlip, trickCrash, trickFakeWin, trickRewind];
+    pool = [trickFakeDialog, trickFakeButtons, trickFakeNotification, trickChase, trickBlackout, trickCloneButtons, trickShake, trickInvisible, trickFakeGameOver, trickFakePause, trickFakeRanking, trickPermissionPrompt, trickChanceTime, trickGiant, trickFlee, trickRain, trickInvert, trickFakeCursors, trickFlip, trickCrash, trickFakeWin, trickRewind,
+      trickHonestTrap, trickBigArrow, trickReadTrap, trickSlot, trickPushPush, trickProgress99, trickUnderCursor, trickKeyTrap, trickFakeBack, trickMessageClose, trickRulesLink, trickAutosave, trickHudRefresh];
   }
   return pool[Math.floor(Math.random() * pool.length)];
 }
@@ -551,12 +839,16 @@ function frame() {
 // ---- ゲーム開始と終了 ----
 
 function startGame() {
-  document.querySelectorAll(".fake-button, .fake-dialog, .clone-button, .toast, .fake-over, .cookie-banner, .perm-prompt, .update-bar, .dl-bar, .fake-cursor").forEach((el) => el.remove());
+  document.querySelectorAll(".fake-button, .fake-dialog, .clone-button, .toast, .fake-over, .cookie-banner, .perm-prompt, .update-bar, .dl-bar, .fake-cursor, .fake-misc").forEach((el) => el.remove());
   document.body.classList.remove("shaking", "flipped", "inverted");
   realButton.style.opacity = "1";
   realButton.style.transform = "";
   frozenTimer = false;
   fleeing = false;
+  if (keyTrapHandler) {
+    document.removeEventListener("keydown", keyTrapHandler);
+    keyTrapHandler = null;
+  }
   overlay.classList.add("hidden");
   realButton.classList.remove("tempting");
   realButton.textContent = "押すな";
@@ -575,11 +867,15 @@ function gameOver(reason = "押しちゃったね。") {
   chasing = false;
   clearTimeout(trickTimer);
   document.body.classList.remove("shaking", "flipped", "inverted");
-  document.querySelectorAll(".fake-over, .fake-cursor").forEach((el) => el.remove());
+  document.querySelectorAll(".fake-over, .fake-cursor, .fake-misc").forEach((el) => el.remove());
   realButton.style.opacity = "1";
   realButton.style.transform = "";
   frozenTimer = false;
   fleeing = false;
+  if (keyTrapHandler) {
+    document.removeEventListener("keydown", keyTrapHandler);
+    keyTrapHandler = null;
+  }
   const score = elapsedSec();
   const best = loadHighscore();
   let recordText = "";
