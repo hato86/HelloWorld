@@ -976,6 +976,274 @@ function trickTeleportSpam() {
   }, 400);
 }
 
+// ---- 追加トリック: ハッキング演出系(すべて演出。実際には何もしない) ----
+
+const origTitle = document.title;
+
+// 偽ブルースクリーン
+function trickBSOD() {
+  const b = document.createElement("div");
+  b.className = "fake-over fake-misc";
+  b.style.background = "#0078d7";
+  b.innerHTML =
+    '<div style="font-size:72px">:(</div>' +
+    "<p>PCで問題が発生したため、再起動する必要があります。<br>" +
+    "エラー: BUTTON_PRESSURE_OVERFLOW</p>" +
+    "<button>今すぐ再起動する</button>";
+  document.body.appendChild(b);
+  b.querySelector("button").addEventListener("click", () => {
+    gameOver("ブルースクリーンは偽物。「再起動」は罠でした…!");
+  });
+  setTimeout(() => {
+    b.remove();
+    if (running) setMessage("PCは無事です。焦った?");
+  }, 5000);
+}
+
+// 偽ハッキングターミナル
+function trickHackTerminal() {
+  const t = document.createElement("div");
+  t.className = "fake-over fake-misc";
+  t.style.cssText += "background:#000;justify-content:flex-start;align-items:flex-start;padding:30px;font-family:monospace;color:#0f0;font-size:14px;text-align:left;";
+  const log = document.createElement("pre");
+  log.style.cssText = "margin:0;white-space:pre-wrap;";
+  t.appendChild(log);
+  const stopBtn = document.createElement("button");
+  stopBtn.textContent = "緊急停止";
+  stopBtn.style.cssText = "margin-top:20px;background:#c0392b;";
+  t.appendChild(stopBtn);
+  document.body.appendChild(t);
+  const lines = [
+    "> CONNECTING TO dont-press.game ...",
+    "> ACCESS GRANTED",
+    "> READING localStorage ...",
+    "> FOUND: dontPressHighscore",
+    "> UPLOADING YOUR HIGHSCORE TO ...",
+  ];
+  let i = 0;
+  const iv = setInterval(() => {
+    if (!t.isConnected || i >= lines.length) { clearInterval(iv); return; }
+    log.textContent += lines[i++] + "\n";
+  }, 600);
+  stopBtn.addEventListener("click", () => {
+    gameOver("「緊急停止」を押させるための演出でした…!");
+  });
+  setTimeout(() => {
+    clearInterval(iv);
+    t.remove();
+    if (running) setMessage("ハッキング?してませんよ。全部演出。");
+  }, 6000);
+}
+
+// タブタイトル乗っ取り(本当にタブ名が変わる)
+function trickTitleHijack() {
+  const titles = ["⚠️ ハッキング検出", "助けて", "(1) 至急確認してください"];
+  let i = 0;
+  const iv = setInterval(() => {
+    document.title = titles[i++ % titles.length];
+  }, 800);
+  const fix = document.createElement("button");
+  fix.className = "fake-button fake-misc";
+  fix.textContent = "タブを修復する";
+  fix.style.left = `${innerWidth / 2 - 70}px`;
+  fix.style.top = "60px";
+  document.body.appendChild(fix);
+  fix.addEventListener("click", () => {
+    gameOver("タブは勝手に直ります。「修復」は罠…!");
+  });
+  setTimeout(() => {
+    clearInterval(iv);
+    document.title = origTitle;
+    fix.remove();
+    if (running) setMessage("タブ、勝手に直ったでしょ?");
+  }, 6000);
+}
+
+// 偽ファイル削除の進行バー
+function trickFileDelete() {
+  const bar = document.createElement("div");
+  bar.className = "dl-bar fake-misc";
+  bar.innerHTML =
+    '🗑 C:\\Users\\あなた\\写真 を削除中… <span class="del-pct">0%</span>' +
+    '<div style="background:#444;border-radius:4px;height:8px;margin:6px 0"><div class="del-fill" style="background:#e74c3c;width:0%;height:8px;border-radius:4px"></div></div>' +
+    "<button>キャンセル</button>";
+  document.body.appendChild(bar);
+  let pct = 0;
+  const iv = setInterval(() => {
+    if (!bar.isConnected) { clearInterval(iv); return; }
+    pct = Math.min(100, pct + Math.floor(Math.random() * 9) + 3);
+    bar.querySelector(".del-pct").textContent = `${pct}%`;
+    bar.querySelector(".del-fill").style.width = `${pct}%`;
+    if (pct >= 100) {
+      clearInterval(iv);
+      bar.innerHTML = "🗑 削除完了……は嘘。何も消していません。";
+      setTimeout(() => bar.remove(), 2500);
+    }
+  }, 500);
+  bar.querySelector("button").addEventListener("click", () => {
+    gameOver("削除なんて最初からしていません。「キャンセル」が罠…!");
+  });
+  setTimeout(() => { clearInterval(iv); bar.remove(); }, 12000);
+}
+
+// ハイスコア人質
+function trickHostageScore() {
+  highscoreEl.textContent = "ハイスコア: ?????";
+  setMessage("ハイスコアは預かった。返してほしければボタンを押せ。", 0);
+  const b = document.createElement("button");
+  b.className = "fake-button fake-misc";
+  b.textContent = "ハイスコアを取り返す";
+  b.style.left = `${innerWidth / 2 - 90}px`;
+  b.style.top = `${innerHeight / 2 + 150}px`;
+  document.body.appendChild(b);
+  b.addEventListener("click", () => {
+    gameOver("人質交渉に応じてしまった…!ハイスコアは無事なのに。");
+  });
+  setTimeout(() => {
+    b.remove();
+    showHighscore();
+    if (running) setMessage("ハイスコアは最初から無事。交渉に応じないのが正解。");
+  }, 5500);
+}
+
+// PLAYER2乱入。偽カーソルが勝手に本物ボタンへ向かう
+function trickPlayer2() {
+  setMessage("⚠️ PLAYER2が参加した!あなたの代わりに押そうとしている!", 0);
+  const p2 = document.createElement("div");
+  p2.className = "fake-cursor fake-misc";
+  p2.innerHTML = '➤<span style="font-size:11px;color:#f66"> PLAYER2</span>';
+  p2.style.color = "#f66";
+  let px = Math.random() * innerWidth;
+  let py = -30;
+  document.body.appendChild(p2);
+  const block = document.createElement("button");
+  block.className = "fake-button fake-misc";
+  block.textContent = "PLAYER2をブロック";
+  block.style.left = `${innerWidth / 2 - 80}px`;
+  block.style.top = "60px";
+  document.body.appendChild(block);
+  block.addEventListener("click", () => {
+    gameOver("PLAYER2は幻。「ブロック」を押したあなたが本物…!");
+  });
+  const iv = setInterval(() => {
+    if (!p2.isConnected) { clearInterval(iv); return; }
+    const tx = realButton.offsetLeft + realButton.offsetWidth / 2;
+    const ty = realButton.offsetTop - 20;
+    px += (tx - px) * 0.04;
+    py += (ty - py) * 0.04;
+    p2.style.left = `${px}px`;
+    p2.style.top = `${py}px`;
+  }, 50);
+  setTimeout(() => {
+    clearInterval(iv);
+    p2.remove();
+    block.remove();
+    if (running) setMessage("PLAYER2は押す勇気がなくて帰りました。");
+  }, 7000);
+}
+
+// タイマーが文字化けして暴れる
+function trickGlitchTimer() {
+  frozenTimer = true;
+  const glitch = ["H4CK3D", "3RR0R", "??.?秒", "-999秒", "▓▓▓▓"];
+  const iv = setInterval(() => {
+    if (!running) { clearInterval(iv); return; }
+    timerEl.textContent = glitch[Math.floor(Math.random() * glitch.length)];
+  }, 150);
+  const b = document.createElement("button");
+  b.className = "fake-button fake-misc";
+  b.textContent = "システム復元";
+  b.style.left = `${innerWidth / 2 - 60}px`;
+  b.style.top = "60px";
+  document.body.appendChild(b);
+  b.addEventListener("click", () => {
+    gameOver("タイマーは表示が乱れただけ。「復元」は罠…!");
+  });
+  setTimeout(() => {
+    clearInterval(iv);
+    frozenTimer = false;
+    b.remove();
+    if (running) setMessage("タイマー復旧。内部の記録はずっと正常でした。");
+  }, 5000);
+}
+
+// 逃げ回る「閉じる」ボタン
+function trickRunawayClose() {
+  const d = document.createElement("div");
+  d.className = "fake-dialog fake-misc";
+  d.innerHTML = "このウィンドウは閉じられません(笑)";
+  d.style.left = `${Math.random() * (innerWidth - 340) + 20}px`;
+  d.style.top = `${Math.random() * (innerHeight - 260) + 80}px`;
+  document.body.appendChild(d);
+  const x = document.createElement("button");
+  x.className = "fake-button fake-misc";
+  x.textContent = "× 閉じる";
+  x.style.left = `${parseFloat(d.style.left) + 240}px`;
+  x.style.top = `${parseFloat(d.style.top) - 14}px`;
+  document.body.appendChild(x);
+  x.addEventListener("mouseover", () => {
+    x.style.left = `${Math.random() * (innerWidth - 120)}px`;
+    x.style.top = `${Math.random() * (innerHeight - 120) + 60}px`;
+  });
+  x.addEventListener("click", () => {
+    gameOver("逃げる×ボタンを執念で捕まえた…その執念が命取り!");
+  });
+  setTimeout(() => { d.remove(); x.remove(); }, 8000);
+}
+
+// 偽パスワード送信(勝手にタイプされていく)
+function trickPasswordSteal() {
+  const d = document.createElement("div");
+  d.className = "fake-dialog fake-misc";
+  d.innerHTML =
+    "🔑 パスワードを送信しています…<br>" +
+    '<input type="text" class="pw" readonly style="width:85%;margin:10px auto;display:block;padding:8px;font-size:14px">' +
+    '<button class="dialog-ok">送信を止める</button>';
+  d.style.left = `${Math.random() * (innerWidth - 340) + 20}px`;
+  d.style.top = `${Math.random() * (innerHeight - 280) + 80}px`;
+  document.body.appendChild(d);
+  const input = d.querySelector(".pw");
+  const iv = setInterval(() => {
+    if (!d.isConnected || input.value.length >= 14) { clearInterval(iv); return; }
+    input.value += "●";
+  }, 300);
+  d.querySelector(".dialog-ok").addEventListener("click", () => {
+    gameOver("あなたのパスワードなんて知りません。「止める」が罠…!");
+  });
+  setTimeout(() => {
+    clearInterval(iv);
+    d.remove();
+    if (running) setMessage("送信先なんてない。ただの●でした。");
+  }, 7000);
+}
+
+// 偽の再起動カウントダウン(本物のカウント付き)
+function trickRebootCountdown() {
+  const d = document.createElement("div");
+  d.className = "fake-dialog fake-misc";
+  d.innerHTML =
+    '🔄 システムは <strong class="reboot-n">10</strong> 秒後に再起動します。' +
+    '<button class="dialog-ok">キャンセル</button>';
+  d.style.left = `${innerWidth / 2 - 160}px`;
+  d.style.top = `${innerHeight / 2 - 220}px`;
+  document.body.appendChild(d);
+  let n = 10;
+  const iv = setInterval(() => {
+    if (!d.isConnected) { clearInterval(iv); return; }
+    n--;
+    d.querySelector(".reboot-n").textContent = n;
+    if (n <= 0) {
+      clearInterval(iv);
+      d.innerHTML = "🔄 再起動……しません(笑)";
+      setTimeout(() => d.remove(), 2500);
+    }
+  }, 1000);
+  d.querySelector(".dialog-ok").addEventListener("click", () => {
+    gameOver("再起動なんて起きない。「キャンセル」が罠…!");
+  });
+  setTimeout(() => { clearInterval(iv); d.remove(); }, 14000);
+}
+
 // ---- トリックのスケジューリング(時間経過でエスカレート) ----
 
 function pickTrick() {
@@ -991,11 +1259,13 @@ function pickTrick() {
   } else if (t < 90) {
     pool = [trickFakePermission, trickFakeDialog, trickFakeButtons, trickFakeNotification, trickChase, trickBlackout, trickCloneButtons, trickShake, trickPermissionPrompt, trickChanceTime, trickGiant, trickFlee, trickRain, trickInvert,
       trickBigArrow, trickReadTrap, trickSlot, trickPushPush, trickProgress99, trickFakeBack, trickMessageClose, trickHudRefresh,
-      trickGiftCard, trickFakeChat, trickFullscreen, trickTabHang];
+      trickGiftCard, trickFakeChat, trickFullscreen, trickTabHang,
+      trickTitleHijack, trickFileDelete, trickRebootCountdown];
   } else {
     pool = [trickFakeDialog, trickFakeButtons, trickFakeNotification, trickChase, trickBlackout, trickCloneButtons, trickShake, trickInvisible, trickFakeGameOver, trickFakePause, trickFakeRanking, trickPermissionPrompt, trickChanceTime, trickGiant, trickFlee, trickRain, trickInvert, trickFakeCursors, trickFlip, trickCrash, trickFakeWin, trickRewind,
       trickHonestTrap, trickBigArrow, trickReadTrap, trickSlot, trickPushPush, trickProgress99, trickUnderCursor, trickKeyTrap, trickFakeBack, trickMessageClose, trickRulesLink, trickAutosave, trickHudRefresh,
-      trickGiftCard, trickFakeChat, trickFullscreen, trickTabHang, trickElectrified, trickCursorGone, trickSystemOrder, trickFakeStartScreen, trickApology, trickParadox, trickTeleportSpam];
+      trickGiftCard, trickFakeChat, trickFullscreen, trickTabHang, trickElectrified, trickCursorGone, trickSystemOrder, trickFakeStartScreen, trickApology, trickParadox, trickTeleportSpam,
+      trickBSOD, trickHackTerminal, trickTitleHijack, trickFileDelete, trickHostageScore, trickPlayer2, trickGlitchTimer, trickRunawayClose, trickPasswordSteal, trickRebootCountdown];
   }
   return pool[Math.floor(Math.random() * pool.length)];
 }
@@ -1051,6 +1321,8 @@ function startGame() {
   }
   if (clickTrapCleanup) clickTrapCleanup();
   document.body.classList.remove("nocursor");
+  document.title = origTitle;
+  showHighscore();
   overlay.classList.add("hidden");
   realButton.classList.remove("tempting");
   realButton.textContent = "押すな";
@@ -1080,6 +1352,7 @@ function gameOver(reason = "押しちゃったね。") {
   }
   if (clickTrapCleanup) clickTrapCleanup();
   document.body.classList.remove("nocursor");
+  document.title = origTitle;
   const score = elapsedSec();
   const best = loadHighscore();
   let recordText = "";
